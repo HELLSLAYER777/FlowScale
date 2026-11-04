@@ -38,6 +38,16 @@ struct GraphicsCaptureItem {
     Closed_revoker Closed(winrt::auto_revoke_t, F&&) { return {}; }
 };
 
+// -- GraphicsCaptureSession --
+struct GraphicsCaptureSession {
+    GraphicsCaptureSession() noexcept = default;
+    GraphicsCaptureSession(std::nullptr_t) noexcept {}
+    GraphicsCaptureSession& operator=(std::nullptr_t) noexcept { return *this; }
+    explicit operator bool() const noexcept { return false; }
+    void StartCapture() const {}
+    void Close() const {}
+};
+
 // -- Direct3D11CaptureFrame --
 struct Direct3D11CaptureFrame {
     Direct3D11CaptureFrame() noexcept = default;
@@ -77,6 +87,9 @@ struct Direct3D11CaptureFramePool {
     void StartCapture() const {}
     void StopCapture() const {}
     Direct3D11CaptureFrame TryGetNextFrame() const { return {}; }
+    GraphicsCaptureSession CreateCaptureSession(GraphicsCaptureItem const& item) const {
+        (void)item; return {};
+    }
 
     struct FrameArrived_revoker {
         void revoke() {}

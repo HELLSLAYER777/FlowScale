@@ -1,23 +1,21 @@
 // winrt/Windows.Graphics.DirectX.Direct3D11.h stub
 #pragma once
 #include "Windows.Graphics.h"
+#include "Windows.Graphics.DirectX.h"   // DirectXPixelFormat (shared enum)
 
-// ABI interface declared by the SDK's windows.graphics.directx.direct3d11.h
-struct IDirect3DDevice;   // global-namespace ABI type (IInspectable-derived)
+// ABI interface declared by the SDK's windows.graphics.directx.direct3d11.h —
+// inside the classic ::Windows namespace chain (mirrors the real interop header).
+namespace Windows { namespace Graphics { namespace DirectX { namespace Direct3D11 {
+struct IDirect3DDevice;   // ABI type (IInspectable-derived), defined by the interop header
+}}}}
 
 namespace winrt { namespace Windows { namespace Graphics { namespace DirectX {
-
-enum class DirectXPixelFormat : int32_t {
-    R8G8B8A8UIntNormalized = 30,
-    B8G8R8A8UIntNormalized = 87,
-    R16G16B16A16Float = 10,
-};
 
 namespace Direct3D11 {
 
 // Projected IDirect3DDevice (consumes ::IDirect3DDevice).
 struct IDirect3DDevice {
-    using abi_type = ::IDirect3DDevice;
+    using abi_type = ::Windows::Graphics::DirectX::Direct3D11::IDirect3DDevice;
     IDirect3DDevice() noexcept = default;
     IDirect3DDevice(std::nullptr_t) noexcept {}
     IDirect3DDevice& operator=(std::nullptr_t) noexcept { return *this; }

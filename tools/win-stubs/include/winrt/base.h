@@ -88,6 +88,13 @@ struct event_token { int64_t value = 0; bool operator==(event_token const&) cons
 struct auto_revoke_t {};
 inline constexpr auto_revoke_t auto_revoke{};
 
+// ---- apartment init (main.cpp: MTA so projected objects are free-threaded) ----
+enum class apartment_type { single_threaded, multi_threaded };
+inline void init_apartment(apartment_type const) {}
+
+// ---- error checking ----
+inline void check_hresult(int32_t result) noexcept { (void)result; }  // syntax check only
+
 // ---- param-point helpers used in interop ----
 struct take_ownership_from_abi_t {};
 inline constexpr take_ownership_from_abi_t take_ownership_from_abi{};

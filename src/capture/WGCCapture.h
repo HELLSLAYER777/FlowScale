@@ -42,7 +42,10 @@ private:
 
     // Refcounted frame copy; safe to hand across threads because the process is
     // initialized as MTA (see main.cpp), so WGC objects are free-threaded.
-    winrt::Windows::Graphics::Capture::Direct3D11CaptureFrame pending_;
+    // { nullptr } required here too (same reason as item_/pool_/session_):
+    // without it the implicit WGCCapture default ctor is deleted and every
+    // std::make_unique<WGCCapture>() fails to compile (MSVC C2280).
+    winrt::Windows::Graphics::Capture::Direct3D11CaptureFrame pending_{ nullptr };
     std::mutex pendingMtx_;
     double   pendingTime_ = 0.0;
     uint32_t width_ = 0, height_ = 0;

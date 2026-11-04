@@ -81,6 +81,10 @@ struct ID2D1Factory : IUnknown {
         (void)dxgiDevice; (void)d2dDevice; return E_NOTIMPL;
     }
 };
+// Factory1 is what Hud stores (needed for CreateDevice on a DXGI device and
+// the D2D 1.1 API surface). API usage beyond the inherited CreateDevice is
+// not exercised by FlowScale, so the base signature suffices.
+struct ID2D1Factory1 : ID2D1Factory {};
 struct ID2D1Device : IUnknown {
     virtual HRESULT CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS options, struct ID2D1DeviceContext** deviceContext) {
         (void)options; (void)deviceContext; return E_NOTIMPL;
@@ -131,6 +135,7 @@ inline D2D1_BITMAP_PROPERTIES1 BitmapProperties1(D2D1_BITMAP_OPTIONS bitmapOptio
 } // namespace D2D1
 
 FS_UUID(ID2D1Factory,        0x06152247, 0x6f50, 0x465a, 0x92,0x45,0x11,0x8b,0xfd,0x3b,0x60,0x07)
+FS_UUID(ID2D1Factory1,       0xbb12d362, 0xdaee, 0x4b9a, 0xaa,0x9d,0x14,0xba,0x0a,0xcc,0xc2,0xfa)
 FS_UUID(ID2D1Device,         0x47dd524d, 0xaa9d, 0x4b45, 0x8b,0x00,0x62,0x8f,0xd1,0xf2,0x0d,0x8b)
 FS_UUID(ID2D1DeviceContext,  0xe8f7fe7a, 0x191c, 0x4669, 0x9a,0x2b,0xf2,0xe0,0xd6,0xd1,0x17,0xea)
 FS_UUID(ID2D1Bitmap1,        0xa8984682, 0x4c9f, 0x4fed, 0x82,0xe0,0x05,0x4f,0x3b,0x0d,0x5b,0x9e)
