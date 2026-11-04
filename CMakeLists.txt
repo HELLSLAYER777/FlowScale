@@ -37,6 +37,9 @@ endif()
 if (WIN32)
     add_executable(FlowScale WIN32 ${FS_APP_SRC} ${FS_UTIL_SRC})
 
+    # Sources include their headers as "mod/Header.h" relative to src/.
+    target_include_directories(FlowScale PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+
     target_compile_definitions(FlowScale PRIVATE
         _WIN32_WINNT=0x0A00
         NOMINMAX
