@@ -85,8 +85,10 @@ GitHub's own Windows runners (free for public repositories):
    `FlowScale-v0.1.0-win64.zip` and `FlowScale-v0.1.0-win64-neural.zip` to a GitHub Release
    with generated release notes.
 
-The workflows build with `Ninja Multi-Config` + the runner's preinstalled vcpkg (binary-cached),
-so they do not depend on which Visual Studio version the runner image ships.
+The workflows are resilient to runner-image changes: vcpkg is a clone **pinned to a fixed
+commit** (same commit as the manifest's `builtin-baseline`, binary-cached between runs), Ninja
+is installed on demand, and `Ninja Multi-Config` is used so nothing depends on which Visual
+Studio version the image ships.
 
 ## Quick start (after building)
 

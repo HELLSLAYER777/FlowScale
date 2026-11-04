@@ -1,5 +1,12 @@
 # Reusable Windows build used by CI and the Release workflow.
 # Produces a runnable zip artifact: FlowScale.exe + shaders\ + models\ + docs.
+#
+# Robust against runner-image churn (e.g. windows-latest moving to VS 2026):
+#  - vcpkg is our own clone pinned to VCPKG_COMMIT (VCPKG_ROOT env override),
+#    never the VS-bundled copy the image may ship;
+#  - the build uses Ninja (installed below if the image lacks it), so no
+#    dependence on which Visual Studio generator is available;
+#  - the same commit is the manifest's builtin-baseline (vcpkg.json).
 name: build-windows (reusable)
 
 on:
@@ -19,22 +26,34 @@ on:
         type: string
         default: "1.30.1"
 
+env:
+  # Keep in sync with "builtin-baseline" in vcpkg.json.
+  VCPKG_COMMIT: 520c3b781ac2abf391887d286d569f74ae6bf752
+
 jobs:
   build:
     name: ${{ inputs.neural && 'win-x64 neural' || 'win-x64 standard' }}
     runs-on: windows-latest
     env:
+      # Our pinned clone, not the VS-bundled vcpkg from the runner image.
+      VCPKG_ROOT: ${{ runner.temp }}/vcpkg
       # Speeds up vcpkg dependency installs between runs (nlohmann-json).
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-bcache
       ORT_VERSION: ${{ inputs.onnxruntime_version }}
     steps:
       - uses: actions/checkout@v4
 
+      - name: Restore pinned vcpkg clone
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/vcpkg
+          key: vcpkg-tool-${{ env.VCPKG_COMMIT }}
+
       - name: Restore vcpkg binary cache
         uses: actions/cache@v4
         with:
           path: vcpkg-bcache
-          key: vcpkg-x64-windows-${{ hashFiles('vcpkg.json') }}-v1
+          key: vcpkg-x64-windows-${{ hashFiles('vcpkg.json') }}-v2
 
       - name: Restore ONNX Runtime download cache
         if: ${{ inputs.neural }}
@@ -47,6 +66,28 @@ jobs:
         shell: bash
         run: mkdir -p vcpkg-bcache _deps
 
+      - name: Install pinned vcpkg
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "$env:VCPKG_ROOT/vcpkg.exe")) {
+            Write-Host "Cloning vcpkg at $env:VCPKG_COMMIT"
+            if (Test-Path $env:VCPKG_ROOT) { Remove-Item -Recurse -Force $env:VCPKG_ROOT }
+            git clone --filter=blob:none --no-checkout https://github.com/microsoft/vcpkg "$env:VCPKG_ROOT"
+            git -C "$env:VCPKG_ROOT" checkout $env:VCPKG_COMMIT
+            & "$env:VCPKG_ROOT/bootstrap-vcpkg.bat" -disableMetrics
+          } else {
+            Write-Host "vcpkg $env:VCPKG_COMMIT restored from cache"
+          }
+
+      - name: Ensure Ninja is available
+        shell: pwsh
+        run: |
+          if (-not (Get-Command ninja -ErrorAction SilentlyContinue)) {
+            Write-Host "ninja not on PATH -- installing via Chocolatey"
+            choco install ninja -y --no-progress
+          }
+          ninja --version
+
       - name: Setup MSVC x64
         uses: ilammy/msvc-dev-cmd@v1
         with:
@@ -57,8 +98,6 @@ jobs:
         shell: pwsh
         run: scripts/fetch-onnxruntime.ps1 -Version $env:ORT_VERSION
 
-      # "Ninja Multi-Config" instead of the VS generator so the build does not
-      # depend on which Visual Studio version the runner image ships.
       - name: Configure
         shell: bash
         run: >

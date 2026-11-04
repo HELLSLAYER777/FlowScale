@@ -80,6 +80,7 @@ powershell -File scripts\build.ps1          # configure + build + collect a zip 
 
 | Symptom | Fix |
 |---|---|
+| `this vcpkg instance requires a manifest with a specified baseline` | Your vcpkg clone is older than the manifest's `builtin-baseline` — update it: `git -C %VCPKG_ROOT% pull` (or re-clone and bootstrap) |
 | `'winrt/Windows.Graphics.Capture.h': No such file` | Install the *C++/WinRT build tools* individual component in VS Installer, or use a Windows SDK ≥ 19041 |
 | WGC reports unsupported | Windows build < 19041 — use monitor targets (DDA path) or update Windows |
 | Executable blocked by SmartScreen | Unsigned dev build — *More info → Run anyway*, or sign it yourself |
