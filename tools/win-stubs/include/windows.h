@@ -53,6 +53,7 @@ typedef HANDLE          HDC;
 typedef HANDLE          HBRUSH;
 typedef HANDLE          HCURSOR;
 typedef HANDLE          HICON;
+typedef HANDLE          HFONT;
 typedef HANDLE          HGLOBAL;
 typedef HANDLE          DPI_AWARENESS_CONTEXT;
 struct HSTRING__;
@@ -66,7 +67,7 @@ typedef uintptr_t       UINT_PTR;
 typedef intptr_t        LONG_PTR;
 typedef uintptr_t       ULONG_PTR;
 typedef ULONG_PTR       DWORD_PTR;
-typedef UINT            WPARAM;
+typedef UINT_PTR        WPARAM;   // real winuser.h: UINT_PTR (64-bit on x64)
 typedef LONG_PTR        LPARAM;
 typedef LONG_PTR        LRESULT;
 typedef unsigned long   HRESULT;
@@ -205,6 +206,7 @@ enum : UINT {
     WM_CTLCOLORSTATIC = 0x0138, WM_CTLCOLORBTN = 0x0135, WM_HSCROLL = 0x0114, WM_VSCROLL = 0x0115,
     WM_KEYDOWN = 0x0100, WM_KEYUP = 0x0101, WM_CHAR = 0x0102, WM_TIMER = 0x0113,
     WM_COMMAND = 0x0111, WM_HOTKEY = 0x0312,
+    WM_SETFONT = 0x0030, WM_GETFONT = 0x0031, WM_SETICON = 0x0080,
 };
 enum : long {
     WS_OVERLAPPED = 0x00000000, WS_POPUP = (long)0x80000000L, WS_CHILD = (long)0x40000000L,
@@ -272,6 +274,7 @@ inline void OutputDebugStringA(LPCSTR) {}
 inline DWORD GetFileAttributesW(LPCWSTR) { return INVALID_FILE_ATTRIBUTES; }
 inline BOOL CreateDirectoryW(LPCWSTR, void*) { return TRUE; }
 inline HANDLE GetCurrentProcess() { return nullptr; }
+inline DWORD GetCurrentProcessId() { return 0; }
 inline BOOL IsDebuggerPresent() { return FALSE; }
 inline void OutputDebugStringW(LPCWSTR) {}
 
@@ -321,6 +324,19 @@ inline HCURSOR LoadCursorW(HINSTANCE, LPCWSTR) { return nullptr; }
 inline HICON LoadIconW(HINSTANCE, LPCWSTR) { return nullptr; }
 inline HBRUSH CreateSolidBrush(COLORREF) { return nullptr; }
 inline BOOL DeleteObject(HANDLE) { return TRUE; }
+// --- gdi32 font surface (wingdi.h in the real SDK) ---
+enum : UINT { FW_NORMAL = 400, FW_SEMI_BOLD = 600, FW_BOLD = 700 };
+enum : UINT { DEFAULT_CHARSET = 1, OUT_DEFAULT_PRECIS = 0, CLIP_DEFAULT_PRECIS = 0,
+              CLEARTYPE_QUALITY = 5, DEFAULT_PITCH = 0, FF_DONTCARE = 0 };
+inline HFONT CreateFontW(int cHeight, int cWidth, int cEscapement, int cOrientation, UINT cWeight,
+                         DWORD bItalic, DWORD bUnderline, DWORD bStrikeOut, UINT iCharSet,
+                         UINT iOutPrecision, UINT iClipPrecision, UINT iQuality, UINT iPitchAndFamily,
+                         LPCWSTR pszFaceName) {
+    (void)cHeight; (void)cWidth; (void)cEscapement; (void)cOrientation; (void)cWeight;
+    (void)bItalic; (void)bUnderline; (void)bStrikeOut; (void)iCharSet; (void)iOutPrecision;
+    (void)iClipPrecision; (void)iQuality; (void)iPitchAndFamily; (void)pszFaceName;
+    return nullptr;
+}
 inline COLORREF SetTextColor(HDC, COLORREF) { return 0; }
 inline COLORREF SetBkColor(HDC, COLORREF) { return 0; }
 inline BOOL SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT) { return TRUE; }

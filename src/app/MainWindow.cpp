@@ -21,11 +21,22 @@ enum {
     IDC_LBL0
 };
 
+// Controls default to the bitmap System font, which looks broken under
+// per-monitor-v2 DPI awareness; give every control a Segoe UI font instead.
+static HFONT UiFont() {
+    static HFONT font = CreateFontW(-15, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+                                    DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+                                    CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
+    return font;
+}
+
 static HWND MkCtl(HWND parent, const wchar_t* cls, const wchar_t* text, DWORD style,
                   int id, int x, int y, int w, int h) {
-    return CreateWindowExW(0, cls, text, WS_CHILD | WS_VISIBLE | style,
-                           x, y, w, h, parent, reinterpret_cast<HMENU>(static_cast<intptr_t>(id)),
-                           GetModuleHandleW(nullptr), nullptr);
+    HWND ctl = CreateWindowExW(0, cls, text, WS_CHILD | WS_VISIBLE | style,
+                               x, y, w, h, parent, reinterpret_cast<HMENU>(static_cast<intptr_t>(id)),
+                               GetModuleHandleW(nullptr), nullptr);
+    if (ctl) SendMessageW(ctl, WM_SETFONT, reinterpret_cast<WPARAM>(UiFont()), TRUE);
+    return ctl;
 }
 
 static void DarkTheme(HWND h) {
@@ -48,7 +59,7 @@ bool MainWindow::Create(HINSTANCE hInst) {
     wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
     wc.hbrBackground = CreateSolidBrush(RGB(24, 26, 32));
     wc.lpszClassName = kClass;
-    wc.hIcon = LoadIconW(hInst, IDI_APPLICATION);
+    wc.hIcon = LoadIconW(nullptr, IDI_APPLICATION);   // shared icon: (hInst, IDI_APPLICATION) never resolves
     RegisterClassExW(&wc);
 
     profiles_.Load();
@@ -90,6 +101,11 @@ LRESULT CALLBACK MainWindow::WndProc(HWND h, UINT msg, WPARAM wp, LPARAM lp) {
 LRESULT MainWindow::Handle(HWND h, UINT msg, WPARAM wp, LPARAM lp) {
     switch (msg) {
     case WM_CREATE:
+        // WM_CREATE is dispatched from INSIDE CreateWindowExW in MainWindow::Create,
+        // i.e. before hwnd_ is assigned. Without storing `h` here every child
+        // control below would be created with a NULL parent (fatal for WS_CHILD:
+        // CreateWindowExW fails silently) and the window would come up empty.
+        hwnd_ = h;
         BuildControls();
         // Global hotkeys: Ctrl+Alt+S start/stop, Ctrl+Alt+G cycle FG, Ctrl+Alt+H HUD.
         RegisterHotKey(h, 1, MOD_CONTROL | MOD_ALT, 'S');
@@ -200,7 +216,7 @@ void MainWindow::BuildControls() {
     const int X = 16, W = 340, LH = 20;
 
     MkCtl(hwnd_, labelCls, L"Target window", 0, IDC_LBL0, X, 10, W, LH);
-    MkCtl(hwnd_, L"COMBOBOX", nullptr, CBS_DROPDOWNLIST | WS_VSCROLL, IDC_TARGET, X, 30, 290, 300);
+    MkCtl(hwnd_, L"COMBOBOX", nullptr, DWORD(CBS_DROPDOWNLIST) | DWORD(WS_VSCROLL), IDC_TARGET, X, 30, 290, 300);
     MkCtl(hwnd_, L"BUTTON", L"...", BS_PUSHBUTTON, IDC_REFRESH, X + 296, 30, 44, 24);
 
     MkCtl(hwnd_, labelCls, L"Scale factor", 0, IDC_LBL0, X, 62, W, LH);

@@ -38,6 +38,10 @@ std::vector<TargetWindow> Engine::EnumerateTargets() {
     EnumWindows([](HWND h, LPARAM lp) -> BOOL {
         auto* list = reinterpret_cast<std::vector<TargetWindow>*>(lp);
         if (!IsWindowVisible(h)) return TRUE;
+        // Never offer our own window as a scaling target.
+        DWORD pid = 0;
+        GetWindowThreadProcessId(h, &pid);
+        if (pid == GetCurrentProcessId()) return TRUE;
         if (GetWindowLongW(h, GWL_EXSTYLE) & WS_EX_TOOLWINDOW) return TRUE;
         // Skip cloaked UWP ghosts.
         BOOL cloaked = FALSE;
