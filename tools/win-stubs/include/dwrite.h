@@ -18,7 +18,21 @@ typedef enum DWRITE_FONT_STRETCH {
     DWRITE_FONT_STRETCH_NORMAL = 5, DWRITE_FONT_STRETCH_CONDENSED = 4,
 } DWRITE_FONT_STRETCH;
 
-struct IDWriteTextFormat : IUnknown {};
+typedef enum DWRITE_TEXT_ALIGNMENT {
+    DWRITE_TEXT_ALIGNMENT_LEADING = 0, DWRITE_TEXT_ALIGNMENT_CENTER = 1, DWRITE_TEXT_ALIGNMENT_TRAILING = 2,
+} DWRITE_TEXT_ALIGNMENT;
+
+typedef enum DWRITE_PARAGRAPH_ALIGNMENT {
+    DWRITE_PARAGRAPH_ALIGNMENT_NEAR = 0, DWRITE_PARAGRAPH_ALIGNMENT_FAR = 1,
+    DWRITE_PARAGRAPH_ALIGNMENT_CENTER = 2, DWRITE_PARAGRAPH_ALIGNMENT_JUSTIFIED = 3,
+} DWRITE_PARAGRAPH_ALIGNMENT;
+
+struct IDWriteTextFormat : IUnknown {
+    virtual HRESULT SetTextAlignment(DWRITE_TEXT_ALIGNMENT textAlignment) { (void)textAlignment; return S_OK; }
+    virtual HRESULT SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT paragraphAlignment) {
+        (void)paragraphAlignment; return S_OK;
+    }
+};
 struct IDWriteFontCollection : IUnknown {};
 
 struct IDWriteFactory : IUnknown {

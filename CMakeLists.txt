@@ -37,6 +37,9 @@ endif()
 if (WIN32)
     add_executable(FlowScale WIN32 ${FS_APP_SRC} ${FS_UTIL_SRC})
 
+    # Embedded comctl32-v6 manifest (themed dark native controls) + version info.
+    target_sources(FlowScale PRIVATE src/app/FlowScale.rc)
+
     # Sources include their headers as "mod/Header.h" relative to src/.
     target_include_directories(FlowScale PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
@@ -90,7 +93,7 @@ if (WIN32)
         d3d11 dxgi d3dcompiler d2d1 dwrite
         windowsapp runtimeobject
         user32 gdi32 shell32 advapi32 ole32
-        comctl32 dwmapi psapi shlwapi
+        comctl32 dwmapi psapi shlwapi uxtheme
     )
 
     find_package(nlohmann_json CONFIG REQUIRED)

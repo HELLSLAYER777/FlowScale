@@ -29,13 +29,17 @@ bool Hud::Init(Device& dev, uint32_t width, uint32_t height, DXGI_FORMAT fmt) {
     const D2D1_SIZE_F size = { float(width), float(height) };
     ThrowIfFailed(dwrite_->CreateTextFormat(L"Segoe UI", nullptr,
                  DWRITE_FONT_WEIGHT_SEMI_BOLD, DWRITE_FONT_STYLE_NORMAL,
-                 DWRITE_FONT_STRETCH_NORMAL, 22.0f, L"en-us", fmtBig_.GetAddressOf()), "TextFormat big");
-    ThrowIfFailed(dwrite_->CreateTextFormat(L"Consolas", nullptr,
+                 DWRITE_FONT_STRETCH_NORMAL, 26.0f, L"en-us", fmtBig_.GetAddressOf()), "TextFormat big");
+    ThrowIfFailed(dwrite_->CreateTextFormat(L"Segoe UI", nullptr,
                  DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL,
-                 DWRITE_FONT_STRETCH_NORMAL, 17.0f, L"en-us", fmtSmall_.GetAddressOf()), "TextFormat small");
+                 DWRITE_FONT_STRETCH_NORMAL, 14.0f, L"en-us", fmtSmall_.GetAddressOf()), "TextFormat small");
+    ThrowIfFailed(dwrite_->CreateTextFormat(L"Segoe UI", nullptr,
+                 DWRITE_FONT_WEIGHT_SEMI_BOLD, DWRITE_FONT_STYLE_NORMAL,
+                 DWRITE_FONT_STRETCH_NORMAL, 12.0f, L"en-us", fmtTiny_.GetAddressOf()), "TextFormat tiny");
 
     ThrowIfFailed(ctx_->CreateSolidColorBrush(D2D1::ColorF(0xF2F2F2, 1.0f), brushWhite_.GetAddressOf()), "Brush");
     ThrowIfFailed(ctx_->CreateSolidColorBrush(D2D1::ColorF(0x4FC3F7, 1.0f), brushAccent_.GetAddressOf()), "Brush accent");
+    ThrowIfFailed(ctx_->CreateSolidColorBrush(D2D1::ColorF(0xAEB2BC, 1.0f), brushLabel_.GetAddressOf()), "Brush label");
 
     UNREFERENCED_PARAMETER(fmt);
     return true;
@@ -61,27 +65,36 @@ void Hud::Draw(ID3D11Texture2D* target, const HudState& s) {
     ctx_->SetTarget(bitmap_.Get());
     ctx_->BeginDraw();
 
-    // Backdrop strip for legibility.
-    const D2D1_SIZE_F sz = ctx_->GetSize();
-    D2D1_ROUNDED_RECT strip = { { 8.f, 8.f, std::min(sz.width, 330.f), std::min(sz.height, 150.f) }, 8.f, 8.f };
+    // Translucent rounded pill, LS-style: two stat blocks (BASE / GENERATED)
+    // plus a small summary line. Drawn every frame onto the presented frame.
+    const D2D1_ROUNDED_RECT pill = { { 8.f, 8.f, 336.f, 106.f }, 12.f, 12.f };
     CPtr<ID2D1SolidColorBrush> bg;
-    ctx_->CreateSolidColorBrush(D2D1::ColorF(0x101418, 0.62f), bg.GetAddressOf());
-    ctx_->FillRoundedRectangle(strip, bg.Get());
+    ctx_->CreateSolidColorBrush(D2D1::ColorF(0x0E1014, 0.66f), bg.GetAddressOf());
+    ctx_->FillRoundedRectangle(pill, bg.Get());
 
-    wchar_t line1[128], line2[128], line3[128];
-    swprintf_s(line1, L"FlowScale  in %.0f fps   out %.0f fps", double(s.srcFps), double(s.outFps));
-    swprintf_s(line2, L"FG %ls (%.0f fps gen)%ls", s.fgLabel.c_str(), double(s.genFps),
-               s.neuralActive ? L"  [neural]" : L"");
-    swprintf_s(line3, L"latency p50 %.1f ms   p95 %.1f ms", double(s.latencyP50), double(s.latencyP95));
+    const D2D1_RECT_F rBaseLbl = { 26.f, 20.f, 140.f, 36.f };
+    const D2D1_RECT_F rBaseVal = { 26.f, 36.f, 150.f, 76.f };
+    const D2D1_RECT_F rGenLbl  = { 160.f, 20.f, 322.f, 36.f };
+    const D2D1_RECT_F rGenVal  = { 160.f, 36.f, 322.f, 76.f };
+    const D2D1_RECT_F rSub     = { 26.f, 76.f, 324.f, 96.f };
 
-    const D2D1_POINT_2F org = { 22.f, 18.f };
-    ctx_->DrawTextW(line1, UINT32(wcslen(line1)), fmtBig_.Get(),   { org.x, org.y, org.x + 300, org.y + 34 }, brushWhite_.Get());
-    ctx_->DrawTextW(line2, UINT32(wcslen(line2)), fmtSmall_.Get(), { org.x, org.y + 40, org.x + 300, org.y + 66 }, brushAccent_.Get());
-    ctx_->DrawTextW(line3, UINT32(wcslen(line3)), fmtSmall_.Get(), { org.x, org.y + 68, org.x + 300, org.y + 94 }, brushWhite_.Get());
-    if (!s.algoLabel.empty()) {
-        ctx_->DrawTextW(s.algoLabel.c_str(), UINT32(s.algoLabel.size()), fmtSmall_.Get(),
-                        { org.x, org.y + 96, org.x + 300, org.y + 122 }, brushWhite_.Get());
+    ctx_->DrawTextW(L"BASE", 4, fmtTiny_.Get(), rBaseLbl, brushLabel_.Get());
+    wchar_t num[32];
+    swprintf_s(num, L"%.0f", double(s.srcFps));
+    ctx_->DrawTextW(num, UINT32(wcslen(num)), fmtBig_.Get(), rBaseVal, brushWhite_.Get());
+
+    ctx_->DrawTextW(L"GENERATED", 9, fmtTiny_.Get(), rGenLbl, brushLabel_.Get());
+    if (s.genFps > 0.5f) {
+        swprintf_s(num, L"+%.0f", double(s.genFps));
+        ctx_->DrawTextW(num, UINT32(wcslen(num)), fmtBig_.Get(), rGenVal, brushAccent_.Get());
+    } else {
+        ctx_->DrawTextW(L"OFF", 3, fmtBig_.Get(), rGenVal, brushLabel_.Get());
     }
+
+    wchar_t sub[160];
+    swprintf_s(sub, L"out %.0f fps   %ls   p50 %.1f / p95 %.1f ms",
+               double(s.outFps), s.fgLabel.c_str(), double(s.latencyP50), double(s.latencyP95));
+    ctx_->DrawTextW(sub, UINT32(wcslen(sub)), fmtSmall_.Get(), rSub, brushLabel_.Get());
 
     ctx_->EndDraw();
     ctx_->SetTarget(nullptr);
@@ -94,8 +107,8 @@ void Hud::Resize(uint32_t width, uint32_t height, ID3D11Texture2D* backbuffer) {
 
 void Hud::Shutdown() {
     bitmap_.Reset(); ctx_.Reset(); d2dDev_.Reset(); factory_.Reset();
-    fmtBig_.Reset(); fmtSmall_.Reset(); dwrite_.Reset();
-    brushWhite_.Reset(); brushAccent_.Reset();
+    fmtBig_.Reset(); fmtSmall_.Reset(); fmtTiny_.Reset(); dwrite_.Reset();
+    brushWhite_.Reset(); brushAccent_.Reset(); brushLabel_.Reset();
 }
 
 } // namespace fs

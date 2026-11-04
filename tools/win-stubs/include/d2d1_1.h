@@ -36,12 +36,31 @@ typedef struct D2D1_PIXEL_FORMAT {
 
 typedef struct D2D1_POINT_2F { FLOAT x; FLOAT y; } D2D1_POINT_2F;
 typedef struct D2D1_SIZE_F { FLOAT width; FLOAT height; } D2D1_SIZE_F;
+typedef struct D2D1_SIZE_U { UINT width; UINT height; } D2D1_SIZE_U;
 typedef struct D2D1_RECT_F { FLOAT left; FLOAT top; FLOAT right; FLOAT bottom; } D2D1_RECT_F;
 typedef struct D2D1_COLOR_F { FLOAT r; FLOAT g; FLOAT b; FLOAT a; } D2D1_COLOR_F;
 
 typedef struct D2D1_ROUNDED_RECT {
     D2D1_RECT_F rect; FLOAT radiusX; FLOAT radiusY;
 } D2D1_ROUNDED_RECT;
+
+typedef struct D2D1_ELLIPSE {
+    D2D1_POINT_2F point; FLOAT radiusX; FLOAT radiusY;
+} D2D1_ELLIPSE;
+
+typedef enum D2D1_RENDER_TARGET_TYPE { D2D1_RENDER_TARGET_TYPE_DEFAULT = 0 } D2D1_RENDER_TARGET_TYPE;
+typedef enum D2D1_RENDER_TARGET_USAGE { D2D1_RENDER_TARGET_USAGE_NONE = 0 } D2D1_RENDER_TARGET_USAGE;
+typedef enum D2D1_FEATURE_LEVEL { D2D1_FEATURE_LEVEL_DEFAULT = 0 } D2D1_FEATURE_LEVEL;
+
+typedef struct D2D1_RENDER_TARGET_PROPERTIES {
+    D2D1_RENDER_TARGET_TYPE type; D2D1_PIXEL_FORMAT pixelFormat;
+    FLOAT dpiX; FLOAT dpiY;
+    D2D1_RENDER_TARGET_USAGE usage; D2D1_FEATURE_LEVEL minLevel;
+} D2D1_RENDER_TARGET_PROPERTIES;
+
+typedef struct D2D1_HWND_RENDER_TARGET_PROPERTIES {
+    HWND hwnd; D2D1_SIZE_U pixelSize; D2D1_PRESENT_OPTIONS presentOptions;
+} D2D1_HWND_RENDER_TARGET_PROPERTIES;
 
 typedef struct D2D1_BITMAP_PROPERTIES {
     D2D1_PIXEL_FORMAT pixelFormat; FLOAT dpiX; FLOAT dpiY;
@@ -71,14 +90,33 @@ struct ID2D1RenderTarget : IUnknown {
         (void)string; (void)stringLength; (void)textFormat; (void)layoutRect; (void)foregroundBrush;
     }
     virtual void FillRoundedRectangle(const D2D1_ROUNDED_RECT& rect, ID2D1Brush* brush) { (void)rect; (void)brush; }
+    virtual void DrawRoundedRectangle(const D2D1_ROUNDED_RECT& rect, ID2D1Brush* brush, FLOAT strokeWidth = 1.f) {
+        (void)rect; (void)brush; (void)strokeWidth;
+    }
+    virtual void FillEllipse(const D2D1_ELLIPSE& ellipse, ID2D1Brush* brush) { (void)ellipse; (void)brush; }
+    virtual void DrawLine(D2D1_POINT_2F p0, D2D1_POINT_2F p1, ID2D1Brush* brush, FLOAT strokeWidth = 1.f,
+                          void* strokeStyle = nullptr) {
+        (void)p0; (void)p1; (void)brush; (void)strokeWidth; (void)strokeStyle;
+    }
+    virtual void Clear(const D2D1_COLOR_F* clearColor) { (void)clearColor; }
     virtual void BeginDraw() {}
     virtual HRESULT EndDraw(UINT64* tag1 = nullptr, UINT64* tag2 = nullptr) { (void)tag1; (void)tag2; return E_NOTIMPL; }
     virtual D2D1_SIZE_F GetSize() const { return D2D1_SIZE_F{}; }
     virtual void SetTarget(ID2D1Image* target) { (void)target; }
 };
+struct ID2D1HwndRenderTarget : ID2D1RenderTarget {
+    virtual D2D1_SIZE_U GetPixelSize() const { return D2D1_SIZE_U{}; }
+    virtual HRESULT Resize(const D2D1_SIZE_U* pixelSize) { (void)pixelSize; return E_NOTIMPL; }
+};
 struct ID2D1Factory : IUnknown {
     virtual HRESULT CreateDevice(struct IDXGIDevice* dxgiDevice, struct ID2D1Device** d2dDevice) {
         (void)dxgiDevice; (void)d2dDevice; return E_NOTIMPL;
+    }
+    virtual HRESULT CreateHwndRenderTarget(const D2D1_RENDER_TARGET_PROPERTIES& renderTargetProperties,
+                                           const D2D1_HWND_RENDER_TARGET_PROPERTIES& hwndRenderTargetProperties,
+                                           ID2D1HwndRenderTarget** hwndRenderTarget) {
+        (void)renderTargetProperties; (void)hwndRenderTargetProperties; (void)hwndRenderTarget;
+        return E_NOTIMPL;
     }
 };
 // Factory1 is what Hud stores (needed for CreateDevice on a DXGI device and
@@ -130,6 +168,23 @@ inline D2D1_BITMAP_PROPERTIES1 BitmapProperties1(D2D1_BITMAP_OPTIONS bitmapOptio
                                                  FLOAT dpiX = 96.0f, FLOAT dpiY = 96.0f) {
     D2D1_BITMAP_PROPERTIES1 bp; bp.bitmapOptions = bitmapOptions; bp.pixelFormat = pixelFormat;
     bp.dpiX = dpiX; bp.dpiY = dpiY; bp.colorContext = nullptr; return bp;
+}
+
+inline D2D1_RENDER_TARGET_PROPERTIES RenderTargetProperties(
+    D2D1_RENDER_TARGET_TYPE type = D2D1_RENDER_TARGET_TYPE_DEFAULT,
+    const D2D1_PIXEL_FORMAT& pixelFormat = PixelFormat(),
+    FLOAT dpiX = 0.0f, FLOAT dpiY = 0.0f,
+    D2D1_RENDER_TARGET_USAGE usage = D2D1_RENDER_TARGET_USAGE_NONE,
+    D2D1_FEATURE_LEVEL minLevel = D2D1_FEATURE_LEVEL_DEFAULT) {
+    D2D1_RENDER_TARGET_PROPERTIES p; p.type = type; p.pixelFormat = pixelFormat;
+    p.dpiX = dpiX; p.dpiY = dpiY; p.usage = usage; p.minLevel = minLevel; return p;
+}
+
+inline D2D1_HWND_RENDER_TARGET_PROPERTIES HwndRenderTargetProperties(
+    HWND hwnd, const D2D1_SIZE_U& pixelSize = D2D1_SIZE_U{ 0, 0 },
+    D2D1_PRESENT_OPTIONS presentOptions = D2D1_PRESENT_OPTIONS_NONE) {
+    D2D1_HWND_RENDER_TARGET_PROPERTIES p; p.hwnd = hwnd; p.pixelSize = pixelSize;
+    p.presentOptions = presentOptions; return p;
 }
 
 } // namespace D2D1

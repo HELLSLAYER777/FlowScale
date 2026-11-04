@@ -37,6 +37,7 @@ public:
     void Reset() noexcept { InternalRelease(); }
 
     T* operator->() const noexcept { return ptr_; }
+    operator T*() const noexcept { return ptr_; }   // real WRL: implicit raw-pointer conversion
     explicit operator bool() const noexcept { return ptr_ != nullptr; }
 
     // Real WRL surface: As / AsIID / CopyTo (ComPtr is NOT an IUnknown —

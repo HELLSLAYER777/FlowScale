@@ -27,8 +27,8 @@ private:
     CPtr<ID2D1DeviceContext>  ctx_;
     CPtr<ID2D1Bitmap1>        bitmap_;
     CPtr<IDWriteFactory>      dwrite_;
-    CPtr<IDWriteTextFormat>   fmtBig_, fmtSmall_;
-    CPtr<ID2D1SolidColorBrush> brushWhite_, brushAccent_;
+    CPtr<IDWriteTextFormat>   fmtBig_, fmtSmall_, fmtTiny_;
+    CPtr<ID2D1SolidColorBrush> brushWhite_, brushAccent_, brushLabel_;
 };
 
 } // namespace fs

@@ -207,6 +207,10 @@ enum : UINT {
     WM_KEYDOWN = 0x0100, WM_KEYUP = 0x0101, WM_CHAR = 0x0102, WM_TIMER = 0x0113,
     WM_COMMAND = 0x0111, WM_HOTKEY = 0x0312,
     WM_SETFONT = 0x0030, WM_GETFONT = 0x0031, WM_SETICON = 0x0080,
+    WM_SETCURSOR = 0x0020, WM_DRAWITEM = 0x002B, WM_MEASUREITEM = 0x002C,
+    WM_CTLCOLOREDIT = 0x0133, WM_CTLCOLORLISTBOX = 0x0134,
+    WM_MOUSEMOVE = 0x0200, WM_LBUTTONDOWN = 0x0201, WM_LBUTTONUP = 0x0202,
+    WM_CAPTURECHANGED = 0x0215,
 };
 enum : long {
     WS_OVERLAPPED = 0x00000000, WS_POPUP = (long)0x80000000L, WS_CHILD = (long)0x40000000L,
@@ -218,11 +222,23 @@ enum : long {
 };
 enum : int { SW_HIDE = 0, SW_SHOWNORMAL = 1, SW_SHOW = 5, SW_MINIMIZE = 6, SW_SHOWNOACTIVATE = 4 };
 enum : long { WS_VSCROLL = 0x00200000L, WS_BORDER = 0x00800000L, WS_TABSTOP = 0x00010000L };
-enum : UINT { CBS_SIMPLE = 0x1, CBS_DROPDOWN = 0x2, CBS_DROPDOWNLIST = 0x3 };
+enum : UINT { CBS_SIMPLE = 0x1, CBS_DROPDOWN = 0x2, CBS_DROPDOWNLIST = 0x3,
+              CBS_OWNERDRAWFIXED = 0x10, CBS_HASSTRINGS = 0x200 };
+enum : UINT { CB_GETLBTEXT = 0x0148, CB_GETLBTEXTLEN = 0x0149 };
+enum : UINT { ODT_COMBOBOX = 3, ODA_DRAWENTIRE = 0x1, ODA_SELECT = 0x20,
+              ODS_SELECTED = 0x1, ODS_COMBOBOXEDIT = 0x1000 };
+struct DRAWITEMSTRUCT {
+    UINT CtlType, CtlID; UINT itemID, itemAction, itemState;
+    HWND hwndItem; HDC hDC; RECT rcItem; ULONG_PTR itemData;
+};
+struct MEASUREITEMSTRUCT {
+    UINT CtlType, CtlID, itemID, itemWidth, itemHeight; ULONG_PTR itemData;
+};
 enum : UINT { BS_PUSHBUTTON = 0x0, BS_DEFPUSHBUTTON = 0x1, BS_AUTOCHECKBOX = 0x3 };
 enum : UINT { ES_LEFT = 0x0, ES_CENTER = 0x1, ES_AUTOHSCROLL = 0x80, ES_NUMBER = 0x2000 };
-enum : UINT { SWP_NOSIZE = 0x0001, SWP_NOMOVE = 0x0002, SWP_NOACTIVATE = 0x0010 };
+enum : UINT { SWP_NOSIZE = 0x0001, SWP_NOMOVE = 0x0002, SWP_NOACTIVATE = 0x0010, SWP_NOZORDER = 0x0004 };
 enum : int { HTCLIENT = 1, HTCAPTION = 2 };
+enum : int { TRANSPARENT = 1, OPAQUE = 2 };
 enum : int { GWL_STYLE = -16, GWL_EXSTYLE = -20, GWLP_USERDATA = -21, GWLP_WNDPROC = -4 };
 enum : UINT { VK_ESCAPE = 0x1B, VK_F5 = 0x74 };
 enum : int { MONITOR_DEFAULTTONEAREST = 2, MONITOR_DEFAULTTONULL = 0 };
@@ -233,6 +249,7 @@ enum : UINT { BN_CLICKED = 0, EN_CHANGE = 0x300, CBN_SELCHANGE = 1 };
 #define CW_USEDEFAULT ((int)0x80000000)
 #define IDC_ARROW   ((LPCWSTR)(ULONG_PTR)32512)
 #define IDI_APPLICATION ((LPCWSTR)(ULONG_PTR)32512)
+#define IDC_HAND    ((LPCWSTR)(ULONG_PTR)32649)
 #define HWND_TOPMOST  ((HWND)(ULONG_PTR)-1)
 #define HWND_NOTOPMOST ((HWND)(ULONG_PTR)-2)
 #define WAIT_OBJECT_0 0u
@@ -321,6 +338,9 @@ inline int MessageBoxW(HWND, LPCWSTR, LPCWSTR, UINT) { return 0; }
 inline HWND MonitorFromWindow(HWND, DWORD) { return nullptr; }
 inline BOOL GetMonitorInfoW(HMONITOR, MONITORINFO*) { return FALSE; }
 inline HCURSOR LoadCursorW(HINSTANCE, LPCWSTR) { return nullptr; }
+inline HCURSOR SetCursor(HCURSOR c) { return c; }
+inline BOOL GetCursorPos(POINT*) { return TRUE; }
+inline BOOL ScreenToClient(HWND, POINT*) { return TRUE; }
 inline HICON LoadIconW(HINSTANCE, LPCWSTR) { return nullptr; }
 inline HBRUSH CreateSolidBrush(COLORREF) { return nullptr; }
 inline BOOL DeleteObject(HANDLE) { return TRUE; }
@@ -342,3 +362,17 @@ inline COLORREF SetBkColor(HDC, COLORREF) { return 0; }
 inline BOOL SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT) { return TRUE; }
 inline HWND SetFocus(HWND) { return nullptr; }
 inline BOOL EnableWindow(HWND, BOOL) { return TRUE; }
+inline BOOL GetClientRect(HWND, RECT* r) { if (r) { r->left = r->top = 0; r->right = 760; r->bottom = 744; } return TRUE; }
+inline BOOL ValidateRect(HWND, const RECT*) { return TRUE; }
+inline BOOL InvalidateRect(HWND, const RECT*, BOOL) { return TRUE; }
+inline HWND SetCapture(HWND) { return nullptr; }
+inline BOOL ReleaseCapture() { return TRUE; }
+inline UINT GetDpiForWindow(HWND) { return 96; }
+inline BOOL AdjustWindowRectEx(RECT*, DWORD, BOOL, DWORD) { return TRUE; }
+inline BOOL FillRect(HDC, const RECT*, HBRUSH) { return TRUE; }
+inline int SetBkMode(HDC, int) { return 0; }
+inline BOOL ClientToScreen(HWND, POINT*) { return TRUE; }
+// --- GDI text (owner-drawn combo items) ---
+enum : UINT { DT_SINGLELINE = 0x20, DT_CENTER = 0x1, DT_VCENTER = 0x4, DT_LEFT = 0x0,
+              DT_NOPREFIX = 0x800, DT_END_ELLIPSIS = 0x8000 };
+inline int DrawTextW(HDC, LPCWSTR, int, RECT*, UINT) { return 0; }
