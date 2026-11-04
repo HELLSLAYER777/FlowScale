@@ -36,7 +36,8 @@ jobs:
     runs-on: windows-latest
     env:
       # Our pinned clone, not the VS-bundled vcpkg from the runner image.
-      VCPKG_ROOT: ${{ runner.temp }}/vcpkg
+      # (Job-level env may only use github/inputs/etc -- no `runner` context.)
+      VCPKG_ROOT: ${{ github.workspace }}/vcpkg-tool
       # Speeds up vcpkg dependency installs between runs (nlohmann-json).
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-bcache
       ORT_VERSION: ${{ inputs.onnxruntime_version }}
@@ -46,7 +47,7 @@ jobs:
       - name: Restore pinned vcpkg clone
         uses: actions/cache@v4
         with:
-          path: ${{ runner.temp }}/vcpkg
+          path: ${{ github.workspace }}/vcpkg-tool
           key: vcpkg-tool-${{ env.VCPKG_COMMIT }}
 
       - name: Restore vcpkg binary cache
