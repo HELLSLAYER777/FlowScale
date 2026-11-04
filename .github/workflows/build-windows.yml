@@ -1,0 +1,101 @@
+# Reusable Windows build used by CI and the Release workflow.
+# Produces a runnable zip artifact: FlowScale.exe + shaders\ + models\ + docs.
+name: build-windows (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      neural:
+        description: "Build the ONNX Runtime neural variant"
+        type: boolean
+        default: false
+      artifact_name:
+        description: "Artifact / zip base name"
+        type: string
+        required: true
+      # Must match the version pinned in scripts/fetch-onnxruntime.ps1
+      onnxruntime_version:
+        description: "Prebuilt ONNX Runtime version"
+        type: string
+        default: "1.30.1"
+
+jobs:
+  build:
+    name: ${{ inputs.neural && 'win-x64 neural' || 'win-x64 standard' }}
+    runs-on: windows-latest
+    env:
+      # Speeds up vcpkg dependency installs between runs (nlohmann-json).
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-bcache
+      ORT_VERSION: ${{ inputs.onnxruntime_version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore vcpkg binary cache
+        uses: actions/cache@v4
+        with:
+          path: vcpkg-bcache
+          key: vcpkg-x64-windows-${{ hashFiles('vcpkg.json') }}-v1
+
+      - name: Restore ONNX Runtime download cache
+        if: ${{ inputs.neural }}
+        uses: actions/cache@v4
+        with:
+          path: _deps/onnxruntime-win-x64-${{ inputs.onnxruntime_version }}
+          key: onnxruntime-win-x64-${{ inputs.onnxruntime_version }}
+
+      - name: Prepare build directories
+        shell: bash
+        run: mkdir -p vcpkg-bcache _deps
+
+      - name: Setup MSVC x64
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Fetch prebuilt ONNX Runtime
+        if: ${{ inputs.neural }}
+        shell: pwsh
+        run: scripts/fetch-onnxruntime.ps1 -Version $env:ORT_VERSION
+
+      # "Ninja Multi-Config" instead of the VS generator so the build does not
+      # depend on which Visual Studio version the runner image ships.
+      - name: Configure
+        shell: bash
+        run: >
+          cmake -S . -B build -G "Ninja Multi-Config"
+          -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake"
+          -DVCPKG_TARGET_TRIPLET=x64-windows
+          -DFLOWSCALE_BUILD_TESTS=ON
+          -DFLOWSCALE_WITH_NEURAL=${{ inputs.neural && 'ON' || 'OFF' }}
+          -DONNXRUNTIME_ROOT_DIR="$PWD/_deps/onnxruntime-win-x64-$ORT_VERSION"
+
+      - name: Build
+        shell: bash
+        run: cmake --build build --config Release --parallel
+
+      - name: Unit tests (pacing / optical-flow math)
+        shell: bash
+        run: ctest --test-dir build -C Release --output-on-failure
+
+      - name: Smoke checks
+        shell: bash
+        run: |
+          test -f build/Release/FlowScale.exe || { echo "exe missing"; exit 1; }
+          test -f build/Release/shaders/scaling/fs1.hlsl || { echo "scaling shaders missing"; exit 1; }
+          test -f build/Release/shaders/framegen/warp_blend.hlsl || { echo "framegen shaders missing"; exit 1; }
+          test -d build/Release/models || { echo "models dir missing"; exit 1; }
+          if [ "${{ inputs.neural }}" = "true" ]; then
+            test -f build/Release/onnxruntime.dll || { echo "onnxruntime.dll missing"; exit 1; }
+          fi
+
+      - name: Package zip
+        shell: pwsh
+        run: scripts/package.ps1 -BuildDir build/Release -Name ${{ inputs.artifact_name }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: dist/${{ inputs.artifact_name }}.zip
+          if-no-files-found: error
+          retention-days: 14

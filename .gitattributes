@@ -1,0 +1,22 @@
+# Normalize line endings across platforms; keep PowerShell files CRLF so
+# Windows PowerShell 5.1 never chokes on them.
+* text=auto
+*.ps1   text eol=crlf
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+*.sln   text eol=crlf
+*.sh    text eol=lf
+*.hlsl  text
+*.hlsli text
+*.cpp   text
+*.h     text
+*.cmake text
+*.yml   text
+*.yaml  text
+*.json  text
+*.md    text
+# Source archives and binaries that may appear in dist/ or _deps/
+*.zip   binary
+*.dll   binary
+*.exe   binary
+*.onnx  binary

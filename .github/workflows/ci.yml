@@ -1,0 +1,52 @@
+# Continuous integration: builds FlowScale on GitHub's Windows runners and
+# publishes a ready-to-run zip as an artifact of every push/PR.
+#
+# Get your exe: Actions tab -> latest "CI" run -> Artifacts -> FlowScale-win64.
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      build_neural:
+        description: "Also build the ONNX Runtime neural variant"
+        type: boolean
+        default: true
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    name: Windows x64 (standard)
+    uses: ./.github/workflows/build-windows.yml
+    with:
+      neural: false
+      artifact_name: FlowScale-win64
+
+  windows-neural:
+    name: Windows x64 (ONNX neural)
+    # Runs on every push/PR; on manual dispatch it follows the checkbox.
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.build_neural }}
+    uses: ./.github/workflows/build-windows.yml
+    with:
+      neural: true
+      artifact_name: FlowScale-win64-neural
+
+  linux-tests:
+    name: Linux (portable math tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure (tests only, no Windows/graphics deps)
+        run: cmake -S . -B build-tests -DFLOWSCALE_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build-tests --parallel
+
+      - name: Unit tests (pacing / optical-flow / sampler math)
+        run: ctest --test-dir build-tests --output-on-failure

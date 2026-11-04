@@ -1,0 +1,49 @@
+# Cutting a release: push a tag, GitHub builds and attaches the zips.
+#   git tag v0.1.0 && git push origin v0.1.0
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    name: Windows x64 (standard)
+    uses: ./.github/workflows/build-windows.yml
+    with:
+      neural: false
+      artifact_name: FlowScale-${{ github.ref_name }}-win64
+
+  windows-neural:
+    name: Windows x64 (ONNX neural)
+    uses: ./.github/workflows/build-windows.yml
+    with:
+      neural: true
+      artifact_name: FlowScale-${{ github.ref_name }}-win64-neural
+
+  publish:
+    name: Publish GitHub Release
+    needs: [windows, windows-neural]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Collect zips
+        uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+
+      - name: List files
+        run: ls -lR release
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*.zip
+          generate_release_notes: true

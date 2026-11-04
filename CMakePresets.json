@@ -1,0 +1,42 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "windows-release",
+      "displayName": "Windows x64 Release (vcpkg toolchain)",
+      "generator": "Visual Studio 17 2022",
+      "architecture": { "value": "x64", "strategy": "set" },
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": {
+          "value": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+          "type": "FILEPATH"
+        },
+        "VCPKG_TARGET_TRIPLET": "x64-windows",
+        "CMAKE_BUILD_TYPE": "Release",
+        "FLOWSCALE_WITH_NEURAL": "OFF",
+        "FLOWSCALE_BUILD_TESTS": "ON"
+      }
+    },
+    {
+      "name": "windows-release-neural",
+      "inherits": "windows-release",
+      "displayName": "Windows x64 Release + ONNX neural engine",
+      "cacheVariables": {
+        "FLOWSCALE_WITH_NEURAL": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "windows-release",
+      "configurePreset": "windows-release",
+      "configuration": "Release"
+    },
+    {
+      "name": "windows-release-neural",
+      "configurePreset": "windows-release-neural",
+      "configuration": "Release"
+    }
+  ]
+}

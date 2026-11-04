@@ -1,0 +1,16 @@
+build/
+build-tests/
+out/
+dist/
+.cache/
+_deps/
+vcpkg-bcache/
+vcpkg_installed/
+*.user
+.vs/
+.ipynb_checkpoints/
+*.zip
+*.onnx
+!docs/**/*.onnx
+bin/models/*
+!bin/models/README.md
