@@ -2,6 +2,7 @@
 #pragma once
 #include <memory>
 #include <functional>
+#include "gfx/Device.h"
 #include "util/Common.h"
 
 namespace fs {

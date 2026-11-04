@@ -2,10 +2,11 @@
 //
 // The scale pass is a runtime-compiled compute shader following the standard
 // contract (see docs/SHADERS.md): t0 source, u0 destination, b0 ShaderParamsCB.
-// Builtin passes live in <exe>\shaders\scaling\; user passes in <exe>\shaders\user\
-// and hot-reload with F5.
+// Builtin passes live in <exe>\shaders\scaling and user passes in <exe>\shaders\user,
+// hot-reloaded with F5.
 #pragma once
 #include "gfx/CShader.h"
+#include "gfx/Device.h"
 #include "core/Settings.h"
 
 namespace fs {

@@ -77,19 +77,19 @@ bool Presenter::CreateSwapchain(bool tryHdr) {
     if (tryHdr) {
         // Accept the float16 swapchain only when the display advertises advanced color.
         CPtr<IDXGISwapChain3> s3;
-        if (SUCCEEDED(swap_.QueryInterface(IID_PPV_ARGS(s3.GetAddressOf())))) {
+        if (SUCCEEDED(swap_.As(&s3))) {
             DXGI_COLOR_SPACE_TYPE support[32]{};
             UINT n = 0;
             if (SUCCEEDED(s3->CheckColorSpaceSupport(DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020, &n))
                 && (n & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT)) {
-                ThrowIfFailed(s3->SetColorSpace(DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020), "SetColorSpace");
+                ThrowIfFailed(s3->SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020), "SetColorSpace1");
                 hdr_ = true;
             }
         }
         if (!hdr_) LOGW("HDR requested but display/driver declined; running SDR float16 path");
     }
 
-    if (SUCCEEDED(swap_.QueryInterface(IID_PPV_ARGS(swap2_.GetAddressOf())))) {
+    if (SUCCEEDED(swap_.As(&swap2_))) {
         ThrowIfFailed(swap2_->SetMaximumFrameLatency(1), "SetMaximumFrameLatency");
         waitable_ = swap2_->GetFrameLatencyWaitableObject();
     } else {

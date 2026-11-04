@@ -70,6 +70,21 @@ dependency-free and tested by `tests/math_tests.cpp`:
 cmake -B build-tests -DFLOWSCALE_BUILD_TESTS=ON && cmake --build build-tests && ctest --test-dir build-tests
 ```
 
+## Syntax-check the Windows target without MSVC
+
+`scripts/syntax-check.sh` compiles every Windows translation unit with `g++ -fsyntax-only`
+against a small stub Windows/D3D/DXGI/D2D/WinRT SDK in `tools/win-stubs/` that mirrors the
+real API signatures. It catches the errors that would otherwise only appear on MSVC —
+missing includes, wrong argument counts, renamed APIs, bad COM/WinRT usage — on any machine
+(and the Linux CI job runs it on every push). `--neural` additionally checks the
+FS_WITH_NEURAL build of `NeuralEngine.cpp` against the real ONNX Runtime headers
+(downloaded into `_deps/` on first use).
+
+```bash
+bash scripts/syntax-check.sh            # all Windows TUs
+bash scripts/syntax-check.sh --neural   # + neural TU with real ONNX Runtime headers
+```
+
 ## Packaging
 
 ```powershell

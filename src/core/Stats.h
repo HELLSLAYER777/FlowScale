@@ -51,6 +51,17 @@ public:
     void OnGenerated()                          { ++genCount_; }
     void OnFrameLatency(double seconds)         { latency_.Push(seconds); }
 
+    // Clears every counter (new session). Atomic members make Stats
+    // non-copy-assignable, so reset in place instead of `stats = Stats{}`.
+    void Reset() {
+        srcArrivals_.Clear();
+        presents_.Clear();
+        latency_.Clear();
+        srcFps_.store(0.f, std::memory_order_relaxed);
+        outFps_.store(0.f, std::memory_order_relaxed);
+        genCount_.store(0, std::memory_order_relaxed);
+    }
+
     // Exponential moving averages for FPS reporting.
     void SetSrcFps(float fps)  { srcFps_.store(fps, std::memory_order_relaxed); }
     void SetOutFps(float fps)  { outFps_.store(fps, std::memory_order_relaxed); }

@@ -101,7 +101,7 @@ bool Engine::Start(HWND target, const Settings& s) {
 
     // 5) Pacer + present thread.
     { std::lock_guard<std::mutex> g(settingsMtx_); pacer_ = PacerMath(s.predictive ? 1.5 : 1.0); }
-    stats = Stats{};
+    stats.Reset();
     running_ = true;
     presentThread_ = std::jthread([this](std::stop_token st) { PresentLoop(st); });
 

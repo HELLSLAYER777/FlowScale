@@ -8,6 +8,7 @@
 // pipelines are the always-available fallback (see docs/NEURAL_ENGINE.md).
 #pragma once
 #include <memory>
+#include <vector>
 #include "core/Settings.h"
 #include "util/Common.h"
 

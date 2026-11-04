@@ -32,8 +32,10 @@ bool Device::Init(bool debugLayer) {
     ctx_ = std::move(ctx);
 
     CPtr<IDXGIDevice> dxgiDev;
-    if (SUCCEEDED(dev_->QueryInterface(IID_PPV_ARGS(dxgiDev.GetAddressOf())))) {
-        dxgiDev->GetAdapter(adapter_.ReleaseAndGetAddressOf());
+    if (SUCCEEDED(dev_.As(&dxgiDev))) {
+        // GetParent QIs the owning adapter to the requested interface (AddRef'd),
+        // so the ComPtr adopts it directly — no ambiguity like GetAdapter(IDXGIAdapter**).
+        dxgiDev->GetParent(IID_PPV_ARGS(adapter_.ReleaseAndGetAddressOf()));
         if (adapter_) {
             CPtr<IDXGIFactory2> f;
             adapter_->GetParent(IID_PPV_ARGS(f.GetAddressOf()));

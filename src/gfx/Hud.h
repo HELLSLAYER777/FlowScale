@@ -1,5 +1,7 @@
 // FlowScale — Direct2D HUD overlay (FPS, latency percentiles, mode labels).
 #pragma once
+#include <d2d1_1.h>
+#include <dwrite.h>
 #include "gfx/Device.h"
 #include "core/Stats.h"
 

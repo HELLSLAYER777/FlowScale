@@ -3,6 +3,7 @@
 #include "util/Log.h"
 #include <nlohmann/json.hpp>
 #include <algorithm>
+#include <filesystem>
 #include <fstream>
 #include <shlwapi.h>
 
@@ -16,7 +17,7 @@ std::wstring ProfileStore::FilePath() const { return AppDataDir() + L"\\profiles
 
 void ProfileStore::Load() {
     profiles_.clear();
-    std::ifstream f(FilePath());
+    std::ifstream f{ std::filesystem::path(FilePath()) };
     if (!f) return;
 
     json j = json::parse(f, nullptr, false);
@@ -44,7 +45,7 @@ bool ProfileStore::Save() const {
             { "settings",  json::parse(p.settings.ToJson(), nullptr, false) },
         });
     }
-    std::ofstream f(FilePath(), std::ios::trunc);
+    std::ofstream f{ std::filesystem::path(FilePath()), std::ios::trunc };
     if (!f) { LOGE("Cannot write profiles.json"); return false; }
     f << j.dump(2);
     return true;

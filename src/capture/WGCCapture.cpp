@@ -5,6 +5,8 @@
 #include <windows.graphics.capture.interop.h>
 #include <windows.graphics.directx.direct3d11.interop.h>
 #include <dxgi1_2.h>
+#include <roapi.h>            // RoGetActivationFactory
+#include <winstring.h>        // HStringReference
 
 namespace fs {
 
@@ -24,15 +26,20 @@ static IGraphicsCaptureItemInterop* CaptureInterop() {
     return interop.Get();
 }
 
-static IDirect3DDevice* MakeDirect3DDevice(ID3D11Device* dev) {
-    static CPtr<IDirect3DDevice> cached;
+static winrt::Windows::Graphics::DirectX::Direct3D11::IDirect3DDevice MakeDirect3DDevice(ID3D11Device* dev) {
+    using winrt::Windows::Graphics::DirectX::Direct3D11::IDirect3DDevice;
+    static IDirect3DDevice cached{ nullptr };
     if (!cached) {
         CPtr<IDXGIDevice> dxgi;
         ThrowIfFailed(dev->QueryInterface(IID_PPV_ARGS(dxgi.GetAddressOf())), "QI dxgidevice");
-        CreateDirect3D11DeviceFromDXGIDevice(dxgi.Get(),
-            reinterpret_cast<IInspectable**>(winrt::put_abi(cached)));
+        // CreateDirect3D11DeviceFromDXGIDevice hands out an IInspectable that IS the
+        // IDirect3DDevice interface; wrap it into the projected winrt type.
+        winrt::com_ptr<::IInspectable> inspectable;
+        ThrowIfFailed(CreateDirect3D11DeviceFromDXGIDevice(dxgi.Get(), inspectable.put()),
+                      "CreateDirect3D11DeviceFromDXGIDevice");
+        cached = inspectable.as<IDirect3DDevice>();
     }
-    return cached.get();
+    return cached;
 }
 
 bool WgcAvailable() {
@@ -44,7 +51,9 @@ bool WgcAvailable() {
 bool WGCCapture::Start(Device& dev, HWND hwnd) {
     try {
         item_ = nullptr;
-        CaptureInterop()->CreateForWindow(hwnd, IID_PPV_ARGS(winrt::put_abi(item_)));
+        // REFIID overload: winrt::put_abi returns void**, which IID_PPV_ARGS rejects.
+        CaptureInterop()->CreateForWindow(hwnd, winrt::guid_of<GraphicsCaptureItem>(),
+                                          winrt::put_abi(item_));
         if (!item_) { LOGE("WGC: CreateForWindow failed"); return false; }
 
         auto size = item_.Size();
@@ -54,7 +63,8 @@ bool WGCCapture::Start(Device& dev, HWND hwnd) {
         pool_ = Direct3D11CaptureFramePool::CreateFreeThreaded(MakeDirect3DDevice(dev.Dev()),
                                                                DirectXPixelFormat::B8G8R8A8UIntNormalized,
                                                                2, size);
-        arrived_ = pool_.FrameArrived(auto_revoke, [this](auto&& sender) {
+        // TypedEventHandler<FramePool, IInspectable> — the handler must accept both args.
+        arrived_ = pool_.FrameArrived(auto_revoke, [this](auto&& sender, auto&&) {
             auto frame = sender.TryGetNextFrame();
             if (!frame) return;
             {
@@ -70,7 +80,7 @@ bool WGCCapture::Start(Device& dev, HWND hwnd) {
             }
         });
 
-        closed_ = item_.Closed(auto_revoke, [this](auto&&, auto&&) {
+        closedRevoker_ = item_.Closed(auto_revoke, [this](auto&&, auto&&) {
             closed_.store(true, std::memory_order_relaxed);
         });
 
@@ -108,12 +118,14 @@ CPtr<ID3D11Texture2D> WGCCapture::TakePendingSurface(double* arrivalTimeOut) {
     auto access = f.Surface().as<IDirect3DDxgiInterfaceAccess>();
     ID3D11Texture2D* raw = nullptr;
     ThrowIfFailed(access->GetInterface(IID_PPV_ARGS(&raw)), "GetInterface(capture surface)");
-    return CPtr<ID3D11Texture2D>(raw);               // ComPtr adopts the reference
+    CPtr<ID3D11Texture2D> tex;                        // GetInterface returns an AddRef'd
+    tex.Attach(raw);                                  // reference: adopt, don't AddRef again
+    return tex;
 }
 
 void WGCCapture::Stop() {
     if (arrived_) arrived_.revoke();
-    if (closed_)  closed_.revoke();
+    if (closedRevoker_) closedRevoker_.revoke();
     if (pool_) { try { pool_.StopCapture(); } catch (...) {} pool_ = nullptr; }
     item_ = nullptr;
     std::lock_guard<std::mutex> g(pendingMtx_);

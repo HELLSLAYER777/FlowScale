@@ -215,7 +215,7 @@ ID3D11Texture2D* FrameGen::Generate(double t) {
     ctx->CSSetConstantBuffers(0, 1, cb_.GetAddressOf());
     ctx->CSSetShaderResources(0, 5, srvs);
     ctx->CSSetSamplers(0, 2, sams);
-    ctx->CSSetUnorderedAccessViews(0, 1, outUavAddress(), nullptr);
+    ctx->CSSetUnorderedAccessViews(0, 1, outUav_.GetAddressOf(), nullptr);
     ctx->CSSetShader(blend_.Get(), nullptr, 0);
     ctx->Dispatch((w_ + 7) / 8, (h_ + 7) / 8, 1);
     ctx->CSSetUnorderedAccessViews(0, 1, &nullUav, nullptr);

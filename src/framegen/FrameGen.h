@@ -10,6 +10,7 @@
 #pragma once
 #include <cmath>
 #include "gfx/CShader.h"
+#include "gfx/Device.h"
 #include "core/Settings.h"
 
 namespace fs {

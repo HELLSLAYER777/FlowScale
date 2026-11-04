@@ -37,6 +37,11 @@ bool MainWindow::Create(HINSTANCE hInst) {
     inst_ = hInst;
     Timer::Init();
 
+    // Load comctl32 and register the common-control classes (trackbars etc.);
+    // without this the DLL may never load and msctls_trackbar32 stays unregistered.
+    INITCOMMONCONTROLSEX icc{ sizeof(icc), ICC_STANDARD_CLASSES | ICC_BAR_CLASSES };
+    InitCommonControlsEx(&icc);
+
     WNDCLASSEXW wc{ sizeof(wc) };
     wc.lpfnWndProc = WndProc;
     wc.hInstance = hInst;

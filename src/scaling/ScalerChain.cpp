@@ -57,7 +57,7 @@ bool ScalerChain::Build(Device& dev, const Settings& s) {
     case ScaleAlgo::UserShader:
         if (s.userShaderName.empty()) { status_ = L"user shader not selected"; return false; }
         ok = scale_.Compile(dev.Dev(), ShaderDir() + L"\\user\\" + s.userShaderName);
-        if (!ok) { status_ = L"user shader failed: " + scale_.LastError(); return false; }
+        if (!ok) { status_ = L"user shader failed: " + Utf8ToWide(scale_.LastError()); return false; }
         break;
     }
     if (!ok) { status_ = L"shader compile failed"; return false; }

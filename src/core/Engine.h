@@ -8,6 +8,7 @@
 #include <atomic>
 #include <memory>
 #include <mutex>
+#include <stop_token>
 #include <thread>
 #include <vector>
 #include "capture/ICapture.h"

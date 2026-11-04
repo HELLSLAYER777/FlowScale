@@ -1,7 +1,7 @@
 // FlowScale — common utilities shared by every module.
 #pragma once
 #include <windows.h>
-#include <dxgi.h>
+#include <dxgi1_4.h>   // base dxgi + 1_2 (Factory2/SwapChain1) + 1_3 (SwapChain2) + 1_4 (SwapChain3)
 #include <d3d11.h>
 #include <wrl/client.h>
 #include <cstdint>

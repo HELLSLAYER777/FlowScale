@@ -30,7 +30,7 @@ void RgbaToNchw(const NeuralTensor& in, std::vector<float>& out) {
     }
 }
 
-void NchwToRgba(const std::vector<float>& in, uint32_t w, uint32_t h, NeuralTensor& out) {
+void NchwToRgba(const float* in, uint32_t w, uint32_t h, NeuralTensor& out) {
     out.w = w; out.h = h;
     out.data.resize(size_t(w) * h * 4);
     const size_t plane = size_t(w) * h;
@@ -57,13 +57,19 @@ static const char* KeepName(Ort::AllocatedStringPtr&& p,
     return owners.emplace_back(std::move(p)).get();
 }
 
+} // namespace fs
+
 // Pimpl over the ORT C++ API so the rest of the build needs no ORT headers.
+// Global scope on purpose: NeuralEngine.h forward-declares ::OrtSession there,
+// and the unique_ptr members must refer to exactly this type.
 struct OrtSession {
     Ort::Env env{ ORT_LOGGING_LEVEL_WARNING, "FlowScale" };
     std::unique_ptr<Ort::Session> session;
     std::vector<const char*> inNames, outNames;
     size_t inCount = 0, outCount = 0;
 };
+
+namespace fs {
 
 bool NeuralEngine::Init() {
     try {
@@ -78,7 +84,9 @@ bool NeuralEngine::Init() {
             using AppendFn = int(__cdecl*)(OrtSessionOptions*, int);
             const auto append = reinterpret_cast<AppendFn>(
                 reinterpret_cast<void*>(GetProcAddress(dml, "OrtSessionOptionsAppendExecutionProvider_DML")));
-            if (append && append(reinterpret_cast<OrtSessionOptions*>(&opts), 0) == 0)
+            // Ort::SessionOptions converts implicitly to OrtSessionOptions* (its
+            // contained pointer) — do NOT take the wrapper's address.
+            if (append && append(opts, 0) == 0)
                 provider_ = L"directml";
         }
         dmlAvailable_ = provider_ == L"directml";
@@ -161,7 +169,7 @@ bool NeuralEngine::Interpolate(const NeuralTensor& prev, const NeuralTensor& cur
         std::vector<float> a, b;
         RgbaToNchw(prev, a);
         RgbaToNchw(cur, b);
-        const float tv = float(t);
+        float tv = float(t);   // CreateTensor needs a mutable data pointer
         const int64_t dims[4] = { 1, 3, int64_t(prev.h), int64_t(prev.w) };
         const int64_t tdims[1] = { 1 };
         Ort::Value inA = Ort::Value::CreateTensor<float>(

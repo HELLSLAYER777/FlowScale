@@ -37,7 +37,7 @@ jobs:
       artifact_name: FlowScale-win64-neural
 
   linux-tests:
-    name: Linux (portable math tests)
+    name: Linux (portable math tests + Windows-TU syntax check)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -50,3 +50,8 @@ jobs:
 
       - name: Unit tests (pacing / optical-flow / sampler math)
         run: ctest --test-dir build-tests --output-on-failure
+
+      # Catches missing includes / wrong arities / bad COM usage in the Windows
+      # target on the fast Linux runner, before the Windows jobs waste minutes.
+      - name: Windows-TU syntax check (stub SDK)
+        run: bash scripts/syntax-check.sh
