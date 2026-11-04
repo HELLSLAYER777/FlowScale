@@ -115,6 +115,7 @@ bool NeuralEngine::HasInterpolator() const {
 }
 
 bool NeuralEngine::Upscale(const NeuralTensor& src, NeuralTensor& dst, float scale) {
+    UNREFERENCED_PARAMETER(scale);   // output size comes from the model itself
     if (!HasUpscaler()) return false;
     try {
         if (!upscale_->session) {

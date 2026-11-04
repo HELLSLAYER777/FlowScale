@@ -90,6 +90,7 @@ if (WIN32)
         d3d11 dxgi d3dcompiler d2d1 dwrite
         windowsapp runtimeobject
         user32 gdi32 shell32 advapi32 ole32
+        comctl32 dwmapi psapi shlwapi
     )
 
     find_package(nlohmann_json CONFIG REQUIRED)

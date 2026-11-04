@@ -78,7 +78,6 @@ bool Presenter::CreateSwapchain(bool tryHdr) {
         // Accept the float16 swapchain only when the display advertises advanced color.
         CPtr<IDXGISwapChain3> s3;
         if (SUCCEEDED(swap_.As(&s3))) {
-            DXGI_COLOR_SPACE_TYPE support[32]{};
             UINT n = 0;
             if (SUCCEEDED(s3->CheckColorSpaceSupport(DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020, &n))
                 && (n & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT)) {

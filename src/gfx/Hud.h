@@ -22,7 +22,7 @@ private:
     Device* dev_ = nullptr;
     uint32_t w_ = 0, h_ = 0;
 
-    CPtr<ID2D1Factory>        factory_;
+    CPtr<ID2D1Factory1>       factory_;   // Factory1: CreateDevice(DXGI) needs D2D 1.1
     CPtr<ID2D1Device>         d2dDev_;
     CPtr<ID2D1DeviceContext>  ctx_;
     CPtr<ID2D1Bitmap1>        bitmap_;

@@ -7,6 +7,7 @@
 #include "capture/ICapture.h"
 #include <atomic>
 #include <mutex>
+#include <winrt/Windows.Graphics.h>
 #include <winrt/Windows.Graphics.Capture.h>
 #include <winrt/Windows.Graphics.DirectX.Direct3D11.h>
 
@@ -36,7 +37,9 @@ private:
     winrt::Windows::Graphics::Capture::Direct3D11CaptureFramePool::FrameArrived_revoker arrived_;
     winrt::Windows::Graphics::Capture::GraphicsCaptureItem::Closed_revoker closedRevoker_;
 
-    winrt::agile_ref<winrt::Windows::Graphics::Capture::Direct3D11CaptureFrame> pending_;
+    // Refcounted frame copy; safe to hand across threads because the process is
+    // initialized as MTA (see main.cpp), so WGC objects are free-threaded.
+    winrt::Windows::Graphics::Capture::Direct3D11CaptureFrame pending_;
     std::mutex pendingMtx_;
     double   pendingTime_ = 0.0;
     uint32_t width_ = 0, height_ = 0;

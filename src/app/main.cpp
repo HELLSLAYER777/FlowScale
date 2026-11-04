@@ -4,6 +4,7 @@
 #include "util/Log.h"
 #include <shellapi.h>
 #include <shlobj.h>
+#include <winrt/base.h>
 
 #pragma comment(lib, "shell32.lib")
 #pragma comment(lib, "user32.lib")
@@ -63,6 +64,12 @@ int APIENTRY wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show) {
 
     // Per-monitor DPI awareness (topmost presenter geometry depends on it).
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+
+    // COM/WinRT apartment: MTA. Windows.Graphics.Capture factory activation
+    // (RoGetActivationFactory / CreateFreeThreaded) needs an initialized
+    // apartment, and MTA keeps the WGC threadpool handler free-threaded.
+    try { winrt::init_apartment(winrt::apartment_type::multi_threaded); }
+    catch (...) { /* keep going: DDA and the flow pipeline work without WinRT */ }
 
     fs::Log::OpenFile(fs::AppDataDir() + L"\\flowscale.log");
     LOGI("FlowScale %s starting", FS_VERSION);
