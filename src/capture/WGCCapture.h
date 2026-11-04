@@ -34,6 +34,7 @@ private:
 
     winrt::Windows::Graphics::Capture::GraphicsCaptureItem        item_{ nullptr };
     winrt::Windows::Graphics::Capture::Direct3D11CaptureFramePool pool_{ nullptr };
+    winrt::Windows::Graphics::Capture::GraphicsCaptureSession     session_;
     winrt::Windows::Graphics::Capture::Direct3D11CaptureFramePool::FrameArrived_revoker arrived_;
     winrt::Windows::Graphics::Capture::GraphicsCaptureItem::Closed_revoker closedRevoker_;
 

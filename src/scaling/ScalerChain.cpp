@@ -9,6 +9,7 @@ static std::wstring ShaderRoot() { return ShaderDir() + L"\\scaling"; }
 
 bool ScalerChain::Init(Device& dev, const Settings& s, uint32_t srcW, uint32_t srcH,
                        uint32_t dstW, uint32_t dstH, DXGI_FORMAT srcFmt, DXGI_FORMAT dstFmt) {
+    UNREFERENCED_PARAMETER(srcFmt);   // shaders read the source format at runtime
     dev_ = &dev;
     cb_        = dev.CreateConstantBuffer(sizeof(ShaderParamsCB));
     samPoint_  = dev.CreateSampler(false);

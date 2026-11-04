@@ -37,9 +37,14 @@ using wgc::GraphicsCaptureItem;
 using wgdx::DirectXPixelFormat;
 
 // ---- WinRT <-> D3D interop helpers (documented COM interfaces, header-only) ----
-static ::Windows::Graphics::Capture::IGraphicsCaptureItemInterop* CaptureInterop() {
-    static CPtr<::Windows::Graphics::Capture::IGraphicsCaptureItemInterop> interop = [] {
-        CPtr<::Windows::Graphics::Capture::IGraphicsCaptureItemInterop> p;
+// NOTE: windows.graphics.capture.interop.h is WIDL-generated and declares the
+// interface at GLOBAL scope (no Windows::Graphics::Capture namespace), while
+// windows.graphics.directx.direct3d11.interop.h uses the namespace form.
+using CaptureItemInterop = ::IGraphicsCaptureItemInterop;
+
+static CaptureItemInterop* CaptureInterop() {
+    static CPtr<CaptureItemInterop> interop = [] {
+        CPtr<CaptureItemInterop> p;
         // No HRESULT check on purpose: if this fails (no COM apartment, ancient OS)
         // p stays null and WgcAvailable() reports false, falling back to DDA.
         RoGetActivationFactory(
@@ -110,12 +115,16 @@ bool WGCCapture::Start(Device& dev, HWND hwnd) {
             closed_.store(true, std::memory_order_relaxed);
         });
 
+        // The session (pool.CreateCaptureSession(item)) owns capture start/stop:
+        // Direct3D11CaptureFramePool itself has neither StartCapture nor StopCapture.
+        session_ = pool_.CreateCaptureSession(item_);
+
         // Keep the pool resized to the window while content size changes.
         auto contentSize = item_.Size();
         if (contentSize.Width != int(width_) || contentSize.Height != int(height_))
             RecreateFramePool(dev, contentSize);
 
-        pool_.StartCapture();
+        session_.StartCapture();
         LOGI("WGC capturing %ls (%ux%u)", item_.DisplayName().c_str(), width_, height_);
         return true;
     } catch (const winrt::hresult_error& e) {
@@ -150,7 +159,9 @@ CPtr<ID3D11Texture2D> WGCCapture::TakePendingSurface(double* arrivalTimeOut) {
 void WGCCapture::Stop() {
     if (arrived_) arrived_.revoke();
     if (closedRevoker_) closedRevoker_.revoke();
-    if (pool_) { try { pool_.StopCapture(); } catch (...) {} pool_ = nullptr; }
+    // Closing the session stops frame delivery; then drop the pool and item.
+    if (session_) { try { session_.Close(); } catch (...) {} session_ = nullptr; }
+    pool_ = nullptr;
     item_ = nullptr;
     std::lock_guard<std::mutex> g(pendingMtx_);
     pending_ = nullptr;
