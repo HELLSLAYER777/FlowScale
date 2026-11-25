@@ -20,11 +20,11 @@ on:
         description: "Artifact / zip base name"
         type: string
         required: true
-      # Must match the version pinned in scripts/fetch-onnxruntime.ps1
+      # Keep in sync with scripts/fetch-onnxruntime.ps1 and scripts/onnxruntime.sha256.
       onnxruntime_version:
         description: "Prebuilt ONNX Runtime version"
         type: string
-        default: "1.30.1"
+        default: "1.30.0"
 
 env:
   # Keep in sync with "builtin-baseline" in vcpkg.json.
@@ -42,26 +42,26 @@ jobs:
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-bcache
       ORT_VERSION: ${{ inputs.onnxruntime_version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Restore pinned vcpkg clone
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ github.workspace }}/vcpkg-tool
           key: vcpkg-tool-${{ env.VCPKG_COMMIT }}
 
       - name: Restore vcpkg binary cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: vcpkg-bcache
           key: vcpkg-x64-windows-${{ hashFiles('vcpkg.json') }}-v2
 
       - name: Restore ONNX Runtime download cache
         if: ${{ inputs.neural }}
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: _deps/onnxruntime-win-x64-${{ inputs.onnxruntime_version }}
-          key: onnxruntime-win-x64-${{ inputs.onnxruntime_version }}
+          key: onnxruntime-nuget-win-x64-${{ inputs.onnxruntime_version }}-${{ hashFiles('scripts/onnxruntime.sha256') }}
 
       - name: Prepare build directories
         shell: bash
@@ -90,9 +90,13 @@ jobs:
           ninja --version
 
       - name: Setup MSVC x64
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe"
+          $installation = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if (-not $installation) { throw "Visual Studio with the MSVC x64 toolchain was not found." }
+          $devCmd = Join-Path $installation 'Common7/Tools/VsDevCmd.bat'
+          "VSDEVCMD=$devCmd" >> $env:GITHUB_ENV
 
       - name: Fetch prebuilt ONNX Runtime
         if: ${{ inputs.neural }}
@@ -100,18 +104,21 @@ jobs:
         run: scripts/fetch-onnxruntime.ps1 -Version $env:ORT_VERSION
 
       - name: Configure
-        shell: bash
-        run: >
-          cmake -S . -B build -G "Ninja Multi-Config"
-          -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake"
-          -DVCPKG_TARGET_TRIPLET=x64-windows
-          -DFLOWSCALE_BUILD_TESTS=ON
-          -DFLOWSCALE_WITH_NEURAL=${{ inputs.neural && 'ON' || 'OFF' }}
-          -DONNXRUNTIME_ROOT_DIR="$PWD/_deps/onnxruntime-win-x64-$ORT_VERSION"
+        shell: cmd
+        run: |
+          call "%VSDEVCMD%" -arch=amd64 -host_arch=amd64 || exit /b 1
+          cmake -S . -B build -G "Ninja Multi-Config" ^
+            -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake" ^
+            -DVCPKG_TARGET_TRIPLET=x64-windows ^
+            -DFLOWSCALE_BUILD_TESTS=ON ^
+            -DFLOWSCALE_WITH_NEURAL=${{ inputs.neural && 'ON' || 'OFF' }} ^
+            ${{ inputs.neural && '-DONNXRUNTIME_ROOT_DIR="%CD%/_deps/onnxruntime-win-x64-%ORT_VERSION%"' || '-UONNXRUNTIME_ROOT_DIR' }}
 
       - name: Build
-        shell: bash
-        run: cmake --build build --config Release --parallel
+        shell: cmd
+        run: |
+          call "%VSDEVCMD%" -arch=amd64 -host_arch=amd64 || exit /b 1
+          cmake --build build --config Release --parallel
 
       - name: Unit tests (pacing / optical-flow math)
         shell: bash
@@ -133,7 +140,7 @@ jobs:
         run: scripts/package.ps1 -BuildDir build/Release -Name ${{ inputs.artifact_name }}
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.artifact_name }}
           path: dist/${{ inputs.artifact_name }}.zip

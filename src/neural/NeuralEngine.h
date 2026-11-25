@@ -12,8 +12,6 @@
 #include "core/Settings.h"
 #include "util/Common.h"
 
-struct OrtSession;      // opaque (ORT C++ API hidden from the rest of the build)
-
 namespace fs {
 
 struct NeuralTensor {  // NHWC float32 CPU staging, converted to NCHW by the engine
@@ -23,6 +21,11 @@ struct NeuralTensor {  // NHWC float32 CPU staging, converted to NCHW by the eng
 
 class NeuralEngine {
 public:
+#ifdef FS_WITH_NEURAL
+    NeuralEngine();
+    ~NeuralEngine();
+#endif
+
     static bool Compiled() {
 #ifdef FS_WITH_NEURAL
         return true;
@@ -48,7 +51,10 @@ public:
     const std::wstring& ProviderName() const { return provider_; }
 
 private:
-    std::unique_ptr<OrtSession> upscale_, interp_;
+#ifdef FS_WITH_NEURAL
+    struct ModelSession;
+    std::unique_ptr<ModelSession> upscale_, interp_;
+#endif
     std::wstring provider_ = L"cpu";
     bool dmlAvailable_ = false;
 };

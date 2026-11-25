@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Collect zips
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: release
           merge-multiple: true
@@ -43,7 +43,7 @@ jobs:
         run: ls -lR release
 
       - name: Create release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: release/*.zip
           generate_release_notes: true

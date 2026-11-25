@@ -40,8 +40,9 @@ foreach ($f in "LICENSE", "THIRD_PARTY_NOTICES.md", "README.md", "docs\BUILDING.
 }
 
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
-$zip = Join-Path $OutDir "$Name.zip"
+$zip = Join-Path (Resolve-Path -LiteralPath $OutDir).Path "$Name.zip"
 if (Test-Path $zip) { Remove-Item -Force $zip }
-Compress-Archive -Path "$stage\*" -DestinationPath $zip -Force
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+[IO.Compression.ZipFile]::CreateFromDirectory($stage, $zip)
 Remove-Item -Recurse -Force $stage
 Write-Host "Packaged -> $zip" -ForegroundColor Green

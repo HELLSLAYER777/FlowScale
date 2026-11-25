@@ -40,7 +40,7 @@ jobs:
     name: Linux (portable math tests + Windows-TU syntax check)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Configure (tests only, no Windows/graphics deps)
         run: cmake -S . -B build-tests -DFLOWSCALE_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release

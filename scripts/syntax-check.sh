@@ -61,33 +61,27 @@ for s in "${SRCS[@]}"; do check "$s"; done
 # Neural variant against the REAL onnxruntime headers (fetched on demand).
 if [ "$WITH_NEURAL" = "1" ]; then
   echo "-- neural variant (FS_WITH_NEURAL, real onnxruntime headers) --"
-  ORT_VER="1.30.1"
+  read -r ORT_SHA ORT_PACKAGE < "$REPO/scripts/onnxruntime.sha256"
+  ORT_VER="${ORT_PACKAGE#microsoft.ml.onnxruntime.}"
+  ORT_VER="${ORT_VER%.nupkg}"
   ORT_DIR="$REPO/_deps/ort-headers-$ORT_VER"
   if [ ! -f "$ORT_DIR/onnxruntime_cxx_api.h" ]; then
-    echo "   fetching onnxruntime-win-x64-$ORT_VER headers ..."
-    mkdir -p "$REPO/_deps"
-    if command -v curl >/dev/null && command -v unzip >/dev/null; then
-      curl -sL --max-time 300 -o "$REPO/_deps/ort.zip" \
-        "https://github.com/microsoft/onnxruntime/releases/download/v$ORT_VER/onnxruntime-win-x64-$ORT_VER.zip" \
-      && unzip -q -o "$REPO/_deps/ort.zip" "onnxruntime-win-x64-$ORT_VER/include/*" -d "$REPO/_deps/" \
-      && rm -rf "$ORT_DIR" && mv "$REPO/_deps/onnxruntime-win-x64-$ORT_VER/include" "$ORT_DIR" \
-      && rm -f "$REPO/_deps/ort.zip"
+    echo "   fetching ONNX Runtime $ORT_VER headers from NuGet ..."
+    mkdir -p "$REPO/_deps" || exit 1
+    workdir="$(mktemp -d "$REPO/_deps/ort.XXXXXX")" || exit 1
+    trap 'rm -rf "$workdir"' EXIT
+    if ! (cd "$workdir" \
+      && curl -fsSL --max-time 300 -o "$ORT_PACKAGE" \
+        "https://api.nuget.org/v3-flatcontainer/microsoft.ml.onnxruntime/$ORT_VER/$ORT_PACKAGE" \
+      && printf '%s  %s\n' "$ORT_SHA" "$ORT_PACKAGE" | sha256sum --check \
+      && unzip -q "$ORT_PACKAGE" 'build/native/include/*' \
+      && test -f build/native/include/onnxruntime_cxx_api.h \
+      && mkdir -p "$ORT_DIR" && cp -R build/native/include/. "$ORT_DIR"); then
+      echo "FAIL  ONNX Runtime headers unavailable"
+      exit 1
     fi
   fi
-  if [ -f "$ORT_DIR/onnxruntime_cxx_api.h" ]; then
-    if ! g++ -fsyntax-only -std=c++20 -Wno-unknown-pragmas \
-          -D_WIN32 -DNOMINMAX -DWIN32_LEAN_AND_MEAN -DUNICODE -D_UNICODE \
-          -D_WIN32_WINNT=0x0A00 -DFS_WITH_NEURAL=1 '-DFS_VERSION="0.1.0"' \
-          -I"$STUBS" -I"$ORT_DIR" -I"$REPO/src" "$REPO/src/neural/NeuralEngine.cpp" 2>/tmp/fs-neural.err; then
-      echo "FAIL  src/neural/NeuralEngine.cpp (FS_WITH_NEURAL)"
-      grep -E "error|Error" /tmp/fs-neural.err | head -12
-      fail=1
-    else
-      echo "ok    src/neural/NeuralEngine.cpp (FS_WITH_NEURAL)"
-    fi
-  else
-    echo "SKIP  src/neural/NeuralEngine.cpp (FS_WITH_NEURAL) - onnxruntime headers unavailable"
-  fi
+  check src/neural/NeuralEngine.cpp -D_WIN32 -DFS_WITH_NEURAL=1 -I"$ORT_DIR"
 fi
 
 exit $fail

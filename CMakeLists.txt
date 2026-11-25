@@ -37,8 +37,9 @@ endif()
 if (WIN32)
     add_executable(FlowScale WIN32 ${FS_APP_SRC} ${FS_UTIL_SRC})
 
-    # Embedded comctl32-v6 manifest (themed dark native controls) + version info.
+    # FlowScale.rc embeds the manifest and version info. Disable the linker's manifest.
     target_sources(FlowScale PRIVATE src/app/FlowScale.rc)
+    target_link_options(FlowScale PRIVATE /MANIFEST:NO)
 
     # Sources include their headers as "mod/Header.h" relative to src/.
     target_include_directories(FlowScale PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
@@ -62,7 +63,7 @@ if (WIN32)
             endif()
             message(STATUS "Neural engine: using onnxruntime CMake package")
         else()
-            # Route B (recommended, what CI uses): the official prebuilt release zip.
+            # Route B (recommended, what CI uses): the official prebuilt NuGet package.
             #   scripts\fetch-onnxruntime.ps1  ->  _deps\onnxruntime-win-x64-<ver>\
             # then configure with -DONNXRUNTIME_ROOT_DIR=<that directory>
             set(ONNXRUNTIME_ROOT_DIR "" CACHE PATH
