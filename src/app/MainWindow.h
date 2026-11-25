@@ -48,7 +48,7 @@ private:
     void    PaintMain();
     CPtr<ID2D1SolidColorBrush> Brush(unsigned rgb, float a = 1.0f);
     void    FillRound(const RECT& r, float rad, unsigned rgb, float a = 1.0f);
-    void    Txt(const RECT& r, const wchar_t* s, IDWriteTextFormat* f, unsigned rgb, float a = 1.0f);
+    void    Txt(const RECT& r, const wchar_t* s, const CPtr<IDWriteTextFormat>& f, unsigned rgb, float a = 1.0f);
     void    DrawSlider(const RECT& track, float t, bool hot);
     void    DrawSwitch(const RECT& sw, bool on, bool hot);
     void    HoverGlyphButton(const RECT& r, const wchar_t* glyph, bool hot);

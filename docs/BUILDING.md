@@ -37,16 +37,17 @@ Two ways to provide ONNX Runtime — **the prebuilt route is what CI uses**:
 ### Route A (recommended): official prebuilt binaries
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\fetch-onnxruntime.ps1   # downloads + SHA-256 verifies ONNX Runtime into _deps\
+powershell -ExecutionPolicy Bypass -File scripts\fetch-onnxruntime.ps1   # downloads from NuGet and verifies SHA-256
 cmake -B build -G "Visual Studio 17 2022" -A x64 `
     -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" `
     -DFLOWSCALE_WITH_NEURAL=ON `
-    -DONNXRUNTIME_ROOT_DIR="$PWD\_deps\onnxruntime-win-x64-1.30.1"
+    -DONNXRUNTIME_ROOT_DIR="$PWD\_deps\onnxruntime-win-x64-1.30.0"
 cmake --build build --config Release
 ```
 
-`fetch-onnxruntime.ps1` pins version **1.30.1** (edit `-Version` to bump; add its SHA-256 to
-the script's table). The runtime `onnxruntime.dll` / `onnxruntime_providers_shared.dll` are
+`fetch-onnxruntime.ps1` defaults to **1.30.0**. When updating the CI pin, update the defaults
+in the script and workflow along with the package SHA-256 in `scripts/onnxruntime.sha256`.
+The runtime `onnxruntime.dll` / `onnxruntime_providers_shared.dll` are
 copied next to the exe automatically.
 
 ### Route B: the vcpkg port (built from source — slow)

@@ -202,8 +202,8 @@ LRESULT MainWindow::Handle(HWND h, UINT msg, WPARAM wp, LPARAM lp) {
     case WM_MOUSEMOVE: {
         const int x = short(LOWORD(lp)), y = short(HIWORD(lp));
         if (drag_) { SetSliderFromX(drag_, x); return 0; }
-        const int h = HitTest(x, y);
-        if (h != hover_) { hover_ = h; InvalidateRect(hwnd_, nullptr, FALSE); }
+        const int hit = HitTest(x, y);
+        if (hit != hover_) { hover_ = hit; InvalidateRect(hwnd_, nullptr, FALSE); }
         return 0;
     }
 
@@ -339,8 +339,8 @@ void MainWindow::FillRound(const RECT& r, float rad, unsigned rgb, float a) {
     rt_->FillRoundedRectangle({ RF(r), rad, rad }, Brush(rgb, a).Get());
 }
 
-void MainWindow::Txt(const RECT& r, const wchar_t* s, IDWriteTextFormat* f, unsigned rgb, float a) {
-    rt_->DrawTextW(s, UINT32(wcslen(s)), f, RF(r), Brush(rgb, a).Get());
+void MainWindow::Txt(const RECT& r, const wchar_t* s, const CPtr<IDWriteTextFormat>& f, unsigned rgb, float a) {
+    rt_->DrawTextW(s, UINT32(wcslen(s)), f.Get(), RF(r), Brush(rgb, a).Get());
 }
 
 void MainWindow::DrawSlider(const RECT& tr, float t, bool hot) {

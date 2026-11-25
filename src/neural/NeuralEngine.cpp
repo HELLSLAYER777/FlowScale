@@ -57,19 +57,15 @@ static const char* KeepName(Ort::AllocatedStringPtr&& p,
     return owners.emplace_back(std::move(p)).get();
 }
 
-} // namespace fs
-
-// Pimpl over the ORT C++ API so the rest of the build needs no ORT headers.
-// Global scope on purpose: NeuralEngine.h forward-declares ::OrtSession there,
-// and the unique_ptr members must refer to exactly this type.
-struct OrtSession {
+struct NeuralEngine::ModelSession {
     Ort::Env env{ ORT_LOGGING_LEVEL_WARNING, "FlowScale" };
     std::unique_ptr<Ort::Session> session;
     std::vector<const char*> inNames, outNames;
     size_t inCount = 0, outCount = 0;
 };
 
-namespace fs {
+NeuralEngine::NeuralEngine() = default;
+NeuralEngine::~NeuralEngine() = default;
 
 bool NeuralEngine::Init() {
     try {
@@ -90,8 +86,8 @@ bool NeuralEngine::Init() {
                 provider_ = L"directml";
         }
         dmlAvailable_ = provider_ == L"directml";
-        upscale_ = std::make_unique<OrtSession>();
-        interp_ = std::make_unique<OrtSession>();
+        upscale_ = std::make_unique<ModelSession>();
+        interp_ = std::make_unique<ModelSession>();
         LOGI("NeuralEngine initialized (provider: %ls)", provider_.c_str());
         return true;
     } catch (const Ort::Exception& e) {
