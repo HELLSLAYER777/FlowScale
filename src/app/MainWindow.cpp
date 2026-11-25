@@ -352,14 +352,14 @@ void MainWindow::DrawSlider(const RECT& tr, float t, bool hot) {
     if (fx > line.left + 2)
         FillRound({ tr.left, line.top, fx, line.bottom }, Dpf(2), hot ? pal::AccentH : pal::Accent);
     const float r = hot ? Dpf(7.5f) : Dpf(6.5f);
-    rt_->FillEllipse({ { float(fx), cy }, r, r }, Brush(pal::Text));
+    rt_->FillEllipse({ { float(fx), cy }, r, r }, Brush(pal::Text).Get());
 }
 
 void MainWindow::DrawSwitch(const RECT& sw, bool on, bool hot) {
     FillRound(sw, Dpf(10), on ? pal::Accent : (hot ? 0x46474F : pal::Track));
     const float cy = (sw.top + sw.bottom) / 2.f;
     const float cx = on ? sw.right - Dpf(10) : sw.left + Dpf(10);
-    rt_->FillEllipse({ { cx, cy }, Dpf(6.5f), Dpf(6.5f) }, Brush(pal::Text));
+    rt_->FillEllipse({ { cx, cy }, Dpf(6.5f), Dpf(6.5f) }, Brush(pal::Text).Get());
 }
 
 void MainWindow::HoverGlyphButton(const RECT& r, const wchar_t* glyph, bool hot) {
@@ -488,7 +488,7 @@ void MainWindow::PaintSidebar() {
     GetClientRect(hwnd_, &crc);
     const int W = Dp(kSidebarW);
     FillRound({ 0, 0, W, crc.bottom }, 0, pal::Sidebar);
-    rt_->DrawLine({ float(W) + .5f, 0 }, { float(W) + .5f, float(crc.bottom) }, Brush(pal::Border), 1.f);
+    rt_->DrawLine({ float(W) + .5f, 0 }, { float(W) + .5f, float(crc.bottom) }, Brush(pal::Border).Get(), 1.f);
 
     // logo block
     const RECT logo{ Dp(24), Dp(20), Dp(24) + Dp(28), Dp(20) + Dp(28) };
@@ -516,7 +516,7 @@ void MainWindow::PaintSidebar() {
     // hotkeys legend
     const int by = crc.bottom - Dp(150);
     rt_->DrawLine({ float(Dp(20)), float(by - Dp(12)) },
-                  { float(W - Dp(20)), float(by - Dp(12)) }, Brush(pal::Border), 1.f);
+                  { float(W - Dp(20)), float(by - Dp(12)) }, Brush(pal::Border).Get(), 1.f);
     static const wchar_t* keys[] = {
         L"Ctrl+Alt+S   Start / Stop",
         L"Ctrl+Alt+G   Cycle frame gen",
@@ -559,7 +559,7 @@ void MainWindow::PaintMain() {
         const RECT r{ mx, y, mx + mw, y + h };
         FillRound(r, Dpf(lay::PanelRad), pal::Panel);
         rt_->DrawRoundedRectangle({ RF(r), Dpf(lay::PanelRad), Dpf(lay::PanelRad) },
-                                  Brush(pal::Border), 1.f);
+                                  Brush(pal::Border).Get(), 1.f);
         Txt({ mx + Dp(lay::PanelPad), y + Dp(12), mx + mw - Dp(lay::PanelPad), y + Dp(30) },
             title, fSection_, pal::Text);
     };
